@@ -89,7 +89,7 @@ fn lookup(x: char) -> usize {
 
 // translate a codon into a single-letter amino acid
 fn translate(triplet: &str) -> char {
-    let mut codon = vec![99; 3];
+    let mut codon = vec![ERR_BAD_NT; 3];
 
     for (i,base) in triplet.chars().enumerate() {
         let val = lookup(base);

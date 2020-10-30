@@ -8,6 +8,7 @@ use bio::io::fasta;
 // index = (16 * first_base) + (4 * second_base) + third_base 
 // So... AAA = 0, AAC = 1, AAG = 2, ... , TTC = 61, TTG = 62, TTT = 63
 const GENETIC_CODE: &str = "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CYCLFLF"; 
+const ERR_NT: usize = 99; 
 
 fn fibonacci(x: usize) -> Vec<usize> {
     // calculate the first x Fibonacci numbers
@@ -37,7 +38,7 @@ fn lookup(x: char) -> usize {
         'C' => base = 1,
         'G' => base = 2,
         'T' => base = 3,
-        _ => base = 99,
+        _ => base = ERR_NT,
     }
     return base;
 }
@@ -47,7 +48,7 @@ fn translate(triplet: &str) -> char {
 
     for (i,base) in triplet.chars().enumerate() {
         let val = lookup(base);
-        if val == 99 {
+        if val == ERR_NT {
             panic!(); // invalid character
         }
         codon[i] = val;

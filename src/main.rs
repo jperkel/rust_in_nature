@@ -70,23 +70,20 @@ fn fibonacci_plot(f: Vec<usize>) -> Result<(), Box<dyn std::error::Error>> {
         .draw_series(LineSeries::new(v.iter()
             .map(|(x,y)| (*x,*y)), &RED,
     ))?;
-    println!("Graph written to {}.\n", filename);
+    println!("Graph written to file '{}'.\n", filename);
 
     Ok(()) 
 }
 
 // given an input 'char', return a base equivalent
 fn lookup(x: char) -> usize {
-    let base;
-
     match x {
-        'A' => base = 0,
-        'C' => base = 1,
-        'G' => base = 2,
-        'T' => base = 3,
-        _ => base = ERR_BAD_NT, // unknown base
+        'A' => return 0,
+        'C' => return 1,
+        'G' => return 2,
+        'T' => return 3,
+        _ => return ERR_BAD_NT, // unknown base
     }
-    return base;
 }
 
 // translate a codon into a single-letter amino acid
@@ -94,11 +91,11 @@ fn translate(triplet: &str) -> char {
     let mut codon = vec![ERR_BAD_NT; 3];
 
     for (i,base) in triplet.chars().enumerate() {
-        let val = lookup(base);
-        if val == ERR_BAD_NT {
-            panic!(); // invalid character
-        }
-        codon[i] = val;
+        codon[i] = lookup(base);
+    }
+
+    if codon.contains(&ERR_BAD_NT) {
+        panic!();
     }
 
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
@@ -108,14 +105,14 @@ fn translate(triplet: &str) -> char {
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Calculating Fibonacci sequence...\n");
     let n = 25; // number of Fibonacci numbers to compute
     let f = fibonacci(n); 
-    println!("The first {} Fibonacci numbers:\n{:?}\n", n, f);
+    println!("The first {} Fibonacci numbers:\n{:?}", n, f);
     fibonacci_plot(f)?;
 
-    println!("Reading sequence data...");
-    let reader = fasta::Reader::from_file("sequence.fasta")?;
+    let filename = "sequence.fasta";
+    println!("Reading FASTA record from file '{}'...", filename);
+    let reader = fasta::Reader::from_file(filename)?;
 
     let mut nb_reads = 0;
     let mut nb_bases = 0;
@@ -125,7 +122,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let record = record.expect("Error during FASTA record parsing");
         if record.id() == "NC_005816.1" {
             println!("{:?}", record.desc());
+            // per https://github.com/jperkel/example_notebook/blob/master/My_sample_notebook.ipynb, 
+            // there is a hypothetical protein at residues 3485-3857
             let myseq = &record.seq()[3485..3857];
+            // myseq is a vector of ASCII codes; convert to a string
             s = String::from_utf8(myseq.to_vec())?;
         }
         nb_reads += 1;
@@ -142,8 +142,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert!(s.len() % 3 == 0, "Sequence length is not a multiple of 3!");
     let mut peptide = String::new();    
     for i in 0..s.len()/3 {
-        let codon = &s[i*3..(i*3)+3];
-        peptide.push(translate(&codon));
+        let codon = &s[i*3..(i*3)+3]; // take a 3-base slice of the sequence
+        peptide.push(translate(&codon)); // translate and add to the string
     }
     println!("{}", peptide);
     println!("Length: {}\n", peptide.len());

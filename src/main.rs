@@ -178,12 +178,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Translation of my gene:");
     assert!(s.len() % 3 == 0, "Sequence length is not a multiple of 3!");
     let mut peptide = String::new();    
-    for i in 0..s.len()/3 {
+    let n_codons = s.len()/3;
+    for i in 0..n_codons {
         let codon = &s[i*3..(i*3)+3]; // take a 3-base slice of the sequence
         peptide.push_str(translate(&codon)); // translate and add to the string
     }
     println!("{}", peptide);
-    println!("Length: {}\n", peptide.len());
+    println!("Length: {}\n", n_codons);
 
     Ok(()) 
 }

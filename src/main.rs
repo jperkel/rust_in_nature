@@ -78,21 +78,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Sequence of my gene [3485..3857]:");
     println!("{}", s);
-    println!("Length: {}", s.len());
+    println!("Length: {}\n", s.len());
 
-    println!("\nTranslation of my gene:");
+    println!("Translation of my gene:");
     let mut peptide = String::new();    
     for i in 0..s.len()/3 {
         let codon = &s[i*3..(i*3)+3];
         peptide.push(translate(&codon));
     }
     println!("{}", peptide);
-    println!("Length: {}", peptide.len());
+    println!("Length: {}\n", peptide.len());
 
     let n = 25; // number of Fibonacci numbers to compute
     let f = fibonacci(n); 
 
-    println!("\nThe first {} Fibonacci numbers:\n{:?}", n, f);
+    println!("The first {} Fibonacci numbers:\n{:?}", n, f);
 
     // a vector of points to plot
     let mut v = vec![(0.0,0.0); n];

@@ -1,7 +1,13 @@
 extern crate bio;
 use plotters::prelude::*;
 use bio::io::fasta;
-use std::convert::TryInto;
+
+// String containing the standard genetic code. Indexing into this array is
+// as follows: 
+// A = 0, C = 1, G = 2, T = 3
+// index = (16 * first_base) + (4 * second_base) + third_base 
+// So... AAA = 0, AAC = 1, AAG = 2, ... , TTC = 61, TTG = 62, TTT = 63
+const GENETIC_CODE: &str = "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CYCLFLF"; 
 
 fn fibonacci(x: usize) -> Vec<usize> {
     // calculate the first x Fibonacci numbers
@@ -23,8 +29,7 @@ fn fibonacci(x: usize) -> Vec<usize> {
     return ar;
 }
 
-
-fn lookup(x: char) -> i32 {
+fn lookup(x: char) -> usize {
     let base;
 
     match x {
@@ -32,26 +37,24 @@ fn lookup(x: char) -> i32 {
         'C' => base = 1,
         'G' => base = 2,
         'T' => base = 3,
-        _ => base = -1,
+        _ => base = 99,
     }
     return base;
 }
 
 fn translate(triplet: &str) -> char {
-    let mut codon = vec![-1; 3];
-
-    // String containing the standard genetic code. Indexing into this array is
-    // as follows: 
-    // A = 0, C = 1, G = 2, T = 3
-    // index = (16 * first_base) + (4 * second_base) + third_base 
-    // So... AAA = 0, AAC = 1, AAG = 2, ... , TTC = 61, TTG = 62, TTT = 63
-    let genetic_code = "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CYCLFLF"; 
+    let mut codon = vec![99; 3];
 
     for (i,base) in triplet.chars().enumerate() {
-        codon[i] = lookup(base);
+        let val = lookup(base);
+        if val == 99 {
+            panic!(); // invalid character
+        }
+        codon[i] = val;
     }
 
-    return genetic_code.chars().nth(((codon[0] * 16) + (codon[1] * 4) + codon[2]).try_into().unwrap()).unwrap();
+    let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
+    return GENETIC_CODE.chars().nth(index).unwrap();
 }
 
 

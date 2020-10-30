@@ -1,6 +1,7 @@
 extern crate bio;
 use plotters::prelude::*;
 use bio::io::fasta;
+use std::collections::HashMap;
 
 // String containing the standard genetic code. Indexing into this array is
 // as follows: 
@@ -86,8 +87,38 @@ fn lookup(x: char) -> usize {
     }
 }
 
-// translate a codon into a single-letter amino acid
-fn translate(triplet: &str) -> char {
+// translate a codon into its corresponding amino acid
+fn translate(triplet: &str) -> &str {
+    let three_letter_code: HashMap<char, &str> = [
+    ('A', "Ala"), 
+    ('B', "???"), 
+    ('C', "Cys"), 
+    ('D', "Asp"), 
+    ('E', "Glu"), 
+    ('F', "Phe"), 
+    ('G', "Gly"), 
+    ('H', "His"), 
+    ('I', "Ile"), 
+    ('J', "???"), 
+    ('K', "Lys"), 
+    ('L', "Leu"), 
+    ('M', "Met"), 
+    ('N', "Asn"), 
+    ('O', "Pyr"), 
+    ('P', "Pro"), 
+    ('Q', "Gln"), 
+    ('R', "Arg"), 
+    ('S', "Ser"), 
+    ('T', "Thr"), 
+    ('U', "Sel"), 
+    ('V', "Val"), 
+    ('W', "Trp"), 
+    ('X', "???"), 
+    ('Y', "Tyr"), 
+    ('Z', "???"), 
+    ('*', "***"), 
+    ].iter().copied().collect();
+
     let mut codon = vec![ERR_BAD_NT; 3];
 
     for (i,base) in triplet.chars().enumerate() {
@@ -99,7 +130,12 @@ fn translate(triplet: &str) -> char {
     }
 
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
-    return GENETIC_CODE.chars().nth(index).unwrap();
+    return three_letter_code
+        .get(&GENETIC_CODE
+            .chars()
+            .nth(index)
+            .unwrap())
+        .unwrap(); 
 }
 
 
@@ -121,7 +157,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for record in reader.records() {
         let record = record.expect("Error during FASTA record parsing");
         if record.id() == "NC_005816.1" {
-            println!("{:?}", record.desc());
+            println!("Sequence ID: {}", record.id());
+            println!("Sequence description:\n{}", record.desc().unwrap());
             // per https://github.com/jperkel/example_notebook/blob/master/My_sample_notebook.ipynb, 
             // there is a hypothetical protein at residues 3485-3857
             let myseq = &record.seq()[3485..3857];
@@ -143,7 +180,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut peptide = String::new();    
     for i in 0..s.len()/3 {
         let codon = &s[i*3..(i*3)+3]; // take a 3-base slice of the sequence
-        peptide.push(translate(&codon)); // translate and add to the string
+        peptide.push_str(translate(&codon)); // translate and add to the string
     }
     println!("{}", peptide);
     println!("Length: {}\n", peptide.len());

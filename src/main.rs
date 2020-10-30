@@ -69,6 +69,7 @@ fn fibonacci_plot(f: Vec<usize>) -> Result<(), Box<dyn std::error::Error>> {
         .draw_series(LineSeries::new(v.iter()
             .map(|(x,y)| (*x,*y)), &RED,
     ))?;
+    println!("Graph written to 'fibonacci.png'.\n");
 
     Ok(()) 
 }

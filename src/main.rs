@@ -38,12 +38,13 @@ fn fibonacci_plot(f: Vec<usize>) -> Result<(), Box<dyn std::error::Error>> {
     let n = f.len();
     // a vector of points to plot
     let mut v = vec![(0.0,0.0); n];
+    let filename = "fibonacci.png";
 
     for i in 0..n {
         v[i] = (i as f32, f[i] as f32);
     }
 
-    let root = BitMapBackend::new("fibonacci.png", (640, 480)).into_drawing_area();
+    let root = BitMapBackend::new(filename, (640, 480)).into_drawing_area();
     root.fill(&WHITE)?;
     let mut chart = ChartBuilder::on(&root)
         .caption(
@@ -69,7 +70,7 @@ fn fibonacci_plot(f: Vec<usize>) -> Result<(), Box<dyn std::error::Error>> {
         .draw_series(LineSeries::new(v.iter()
             .map(|(x,y)| (*x,*y)), &RED,
     ))?;
-    println!("Graph written to 'fibonacci.png'.\n");
+    println!("Graph written to {}.\n", filename);
 
     Ok(()) 
 }
@@ -138,7 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Length: {}\n", s.len());
 
     println!("Translation of my gene:");
-    assert!(s.len() % 3 == 0, "Sequence is not a multiple of 3 in length!");
+    assert!(s.len() % 3 == 0, "Sequence length is not a multiple of 3!");
     let mut peptide = String::new();    
     for i in 0..s.len()/3 {
         let codon = &s[i*3..(i*3)+3];

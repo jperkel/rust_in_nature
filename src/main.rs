@@ -56,9 +56,9 @@ fn translate(triplet: &str) -> char {
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Doing bioinfo stuff...");
-
+    println!("Reading file sequence.fasta...");
     let reader = fasta::Reader::from_file("sequence.fasta")?;
+
     let mut nb_reads = 0;
     let mut nb_bases = 0;
     let mut s = String::new();
@@ -66,6 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for record in reader.records() {
         let record = record.expect("Error during FASTA record parsing");
         if record.id() == "NC_005816.1" {
+            println!("{:?}", record.desc());
             let myseq = &record.seq()[3485..3857];
             s = String::from_utf8(myseq.to_vec())?;
         }
@@ -75,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Total number of reads: {}", nb_reads);
     println!("Total number of bases: {}\n", nb_bases);
 
-    println!("Sequence of my gene:");
+    println!("Sequence of my gene [3485..3857]:");
     println!("{}", s);
     println!("Length: {}", s.len());
 

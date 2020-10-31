@@ -143,6 +143,27 @@ fn translate(triplet: &str) -> &str {
 }
 
 
+// tests to ensure translation is working
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_translate_atg() {
+        assert_eq!(translate("ATG"), "Met");
+    }
+
+    #[test]
+    fn test_translate_tag() {
+        assert_eq!(translate("TAG"), "***");
+    }
+
+    #[test]
+    fn test_translate_ttt() {
+        assert_eq!(translate("TTT"), "Phe");
+    }
+}
+
 // print a pretty sequence, 72 bases per line, plus base numbering
 // s: sequence
 // t: sequence type ("dna" or "protein")

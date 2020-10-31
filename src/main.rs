@@ -13,6 +13,12 @@ const GENETIC_CODE: &str = "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*Y
 // ERR_BAD_NT is an error value for an invalid nucleotide 
 const ERR_BAD_NT: usize = 99; 
 
+// enumeration of genetic sequence types
+enum SeqType {
+    DNA,
+    Protein,
+}
+
 
 // calculate the first x Fibonacci numbers
 fn fibonacci(x: usize) -> Vec<usize> {
@@ -130,31 +136,28 @@ fn translate(triplet: &str) -> &str {
     }
 
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
-    return three_letter_code
-        .get(&GENETIC_CODE
-            .chars()
-            .nth(index)
-            .unwrap())
-        .unwrap(); 
+    // translate the codon into single-letter code
+    let c = GENETIC_CODE.chars().nth(index).unwrap();
+    // return the three-letter equivalent
+    return three_letter_code.get(&c).unwrap(); 
 }
 
 
 // print a pretty sequence, 72 bases per line, plus base numbering
 // s: sequence
 // t: sequence type ("dna" or "protein")
-fn print_seq(s: &str, t: &str) {
+fn print_seq(s: &str, t: SeqType) {
     let linelen = 72;
     let divisor;
     match t {
         // if we're printing a protein, count amino acids, not bases, 
         // so divide by 3
-        "dna" => divisor = 1,
-        "protein" => divisor = 3,
-        _ => panic!(),
+        SeqType::DNA => divisor = 1,
+        SeqType::Protein => divisor = 3,
     }
     for i in 0..(s.len()/linelen) {
         let myline = &s[i*linelen..(i*linelen)+linelen];
-        println!("{number:>0width$} {}", myline, number=((i*linelen)+1)/divisor, width=3);
+        println!("{number:>0width$} {}", myline, number=(((i*linelen)/divisor))+1, width=3);
     }
     // print whatever is left
     if s.len() % linelen != 0 {
@@ -198,7 +201,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Total number of bases: {}\n", nb_bases);
 
     println!("Sequence of my gene [3485..3857]:");
-    print_seq(&s, "dna");
+    print_seq(&s, SeqType::DNA);
     println!("Length: {}\n", s.len());
 
     println!("Translation of my gene:");
@@ -209,7 +212,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let codon = &s[i*3..(i*3)+3]; // take a 3-base slice of the sequence
         peptide.push_str(translate(&codon)); // translate and add to the string
     }
-    print_seq(&peptide, "protein");
+    print_seq(&peptide, SeqType::Protein);
     println!("Length: {}\n", n_codons);
 
     Ok(()) 

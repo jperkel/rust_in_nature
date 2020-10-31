@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::io;
 use std::io::Write;
 use std::env;
+use std::process;
 
 // Translation table 11 from https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi. 
 // Indexing into this array is as follows: 
@@ -78,7 +79,9 @@ fn translate(triplet: &str, t: Translation) -> String {
     }
 
     if codon.contains(&ERR_BAD_NT) {
-        panic!("Something went wrong in translation!");
+        println!("Something went wrong in translation!");
+        println!("{:?}", codon);
+        process::exit(1);
     }
 
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
@@ -141,7 +144,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         filename = &args[1];
     }
     if !std::path::Path::new(filename).exists() {
-        panic!("File {} does not exist.", filename);
+        println!("File '{}' does not exist.", filename);
+        process::exit(1);
     }
 
     println!("Reading FASTA records from file '{}'...", filename);
@@ -174,9 +178,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             io::stdin().read_line(&mut retval).expect("Failed to read from stdin");
 
             // use trim() to delete the trailing newline ('\n') char
-            let selection = match retval.trim().parse::<usize>() {
+            retval = retval.trim().to_string();
+
+            let selection = match retval.parse::<usize>() {
                 Ok(i) => i, // if good input, just return the number
-                Err(_) => panic!("Invalid input"),
+                Err(_) => {
+                    println!("Invalid input: '{}'", retval);
+                    process::exit(1);
+                },
             };
 
             let myseq = match selection {
@@ -189,7 +198,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 7 => &record.seq()[6663..7602],
                 8 => &record.seq()[7788..8088],
                 9 => &record.seq()[8087..8429],
-                _ => panic!("Invalid selection"),
+                _ => { 
+                    println!("Invalid input: '{}'", selection);
+                    process::exit(1);
+                },
             };
             
             // convert the sequence record into a String

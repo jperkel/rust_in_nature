@@ -77,7 +77,7 @@ fn translate(triplet: &str, t: Translation) -> String {
     }
 
     if codon.contains(&ERR_BAD_NT) {
-        panic!();
+        panic!("Something went wrong in translation!");
     }
 
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
@@ -85,10 +85,11 @@ fn translate(triplet: &str, t: Translation) -> String {
     let c = GENETIC_CODE.chars().nth(index).unwrap();
     match t {
         Translation::OneLetter => return c.to_string(),
-        Translation::ThreeLetter => return three_letter_code.get(&c).unwrap().to_string(),
+        Translation::ThreeLetter => return three_letter_code[&c].to_string(),
     }
 }
 
+// h/t https://medium.com/python-in-plain-english/from-python-to-rust-part-3-f035d780de1
 fn reverse_complement(s: &str) -> String {
     let complements: HashMap<char, char> = [
         ('A', 'T'),
@@ -99,11 +100,12 @@ fn reverse_complement(s: &str) -> String {
 
     let mut rev_comp = String::new();
 
-    for base in s.chars() {
-        rev_comp.push(*complements.get(&base).unwrap());
+    // iterate over the sequence in reverse, and add its complement to rev_comp
+    for base in s.chars().rev() {
+        rev_comp.push(complements[&base]);
     }
 
-    return rev_comp.chars().rev().collect::<String>();
+    return rev_comp;
 }
 
 // print a pretty sequence, 72 bases per line, plus base numbering

@@ -139,6 +139,32 @@ fn translate(triplet: &str) -> &str {
 }
 
 
+// print a pretty sequence, 72 bases per line, plus base numbering
+// s: sequence
+// t: sequence type ("dna" or "protein")
+fn print_seq(s: &str, t: &str) {
+    let linelen = 72;
+    let divisor;
+    match t {
+        // if we're printing a protein, count amino acids, not bases, 
+        // so divide by 3
+        "dna" => divisor = 1,
+        "protein" => divisor = 3,
+        _ => panic!(),
+    }
+    for i in 0..(s.len()/linelen) {
+        let myline = &s[i*linelen..(i*linelen)+linelen];
+        println!("{number:>0width$} {}", myline, number=((i*linelen)+1)/divisor, width=3);
+    }
+    // print whatever is left
+    if s.len() % linelen != 0 {
+        println!("{number:>0width$} {}", &s[s.len()-s.len()%linelen..s.len()],
+        number=((s.len()-s.len()%linelen))/divisor+1, width=3)
+    }
+}
+
+
+
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let n = 25; // number of Fibonacci numbers to compute
@@ -172,7 +198,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Total number of bases: {}\n", nb_bases);
 
     println!("Sequence of my gene [3485..3857]:");
-    println!("{}", s);
+    print_seq(&s, "dna");
     println!("Length: {}\n", s.len());
 
     println!("Translation of my gene:");
@@ -183,7 +209,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let codon = &s[i*3..(i*3)+3]; // take a 3-base slice of the sequence
         peptide.push_str(translate(&codon)); // translate and add to the string
     }
-    println!("{}", peptide);
+    print_seq(&peptide, "protein");
     println!("Length: {}\n", n_codons);
 
     Ok(()) 

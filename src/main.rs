@@ -1,14 +1,15 @@
 extern crate bio;
-use plotters::prelude::*;
 use bio::io::fasta;
 use std::collections::HashMap;
+use std::io;
+use std::io::Write;
 
-// String containing the standard genetic code. Indexing into this array is
-// as follows: 
-// A = 0, C = 1, G = 2, T = 3
+// Translation table 11 from https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi. 
+// Indexing into this array is as follows: 
+// T = 0, C = 1, A = 2, G = 3
 // index = (16 * first_base) + (4 * second_base) + third_base 
-// So... AAA = 0, AAC = 1, AAG = 2, ... , TTC = 61, TTG = 62, TTT = 63
-const GENETIC_CODE: &str = "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CYCLFLF"; 
+// So... TTT = 0, TTC = 1, TTA = 2, ... , GGC = 61, GGA = 62, GGG = 63
+const GENETIC_CODE: &str = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
 
 // ERR_BAD_NT is an error value for an invalid nucleotide 
 const ERR_BAD_NT: usize = 99; 
@@ -26,75 +27,13 @@ enum Translation {
     ThreeLetter,
 }
 
-// calculate the first x Fibonacci numbers
-fn fibonacci(x: usize) -> Vec<usize> {
-    assert!(x >= 2, "x must be at least 2!");
-    let mut f1 = 0;
-    let mut f2 = 1;
-    
-    // a vector to hold the computed values. We know the first two numbers
-    let mut ar = vec![0; x]; 
-    ar[0] = f1;
-    ar[1] = f2;
-
-    for i in 2..x {
-        let f3 = f1 + f2;
-        ar[i] = f3;
-        f1 = f2;
-        f2 = f3;
-    }
-    return ar;
-}
-
-// graph the Fibonacci sequence
-fn fibonacci_plot(f: Vec<usize>) -> Result<(), Box<dyn std::error::Error>> {
-    let n = f.len();
-    // a vector of points to plot
-    let mut v = vec![(0.0,0.0); n];
-    let filename = "fibonacci.png";
-
-    for i in 0..n {
-        v[i] = (i as f32, f[i] as f32);
-    }
-
-    let root = BitMapBackend::new(filename, (640, 480)).into_drawing_area();
-    root.fill(&WHITE)?;
-    let mut chart = ChartBuilder::on(&root)
-        .caption(
-            format!("The first {} Fibonacci numbers", n), 
-            ("sans-serif", 30).into_font()
-        )
-        .margin(5)
-        .x_label_area_size(30)
-        .y_label_area_size(60)
-        .build_cartesian_2d(0f32..27f32, 0f32..52500f32)?;
-
-    chart.configure_mesh()
-        .x_desc("Sequence no.")
-        .y_desc("Fibonacci no.")
-        .draw()?;
-
-    chart
-        .draw_series(v.iter()
-        .map(|(x,y)| Circle::new((*x,*y), 3, BLUE.filled())
-    ))?;
-
-    chart
-        .draw_series(LineSeries::new(v.iter()
-            .map(|(x,y)| (*x,*y)), &RED,
-    ))?;
-    println!("Graph written to file '{}'.\n", filename);
-
-    Ok(()) 
-}
-
 // given an input 'char', return a base equivalent
 fn lookup(x: char) -> usize {
     match x {
-        'A' => return 0,
+        'T' => return 0,
         'C' => return 1,
-        'G' => return 2,
-        'T' => return 3,
+        'A' => return 2,
+        'G' => return 3,
         _ => return ERR_BAD_NT, // unknown base
     }
 }
@@ -150,31 +89,21 @@ fn translate(triplet: &str, t: Translation) -> String {
     }
 }
 
+fn reverse_complement(s: &str) -> String {
+    let complements: HashMap<char, char> = [
+        ('A', 'T'),
+        ('C', 'G'),
+        ('G', 'C'),
+        ('T', 'A'),
+    ].iter().copied().collect();
 
-// tests to ensure translation is working
-#[cfg(test)]
-mod tests {
-    use super::*;
+    let mut rev_comp = String::new();
 
-    #[test]
-    fn test_translate_atg() {
-        assert_eq!(translate("ATG", Translation::ThreeLetter), "Met");
+    for base in s.chars() {
+        rev_comp.push(*complements.get(&base).unwrap());
     }
 
-    #[test]
-    fn test_translate_tag() {
-        assert_eq!(translate("TAG", Translation::ThreeLetter), "***");
-    }
-
-    #[test]
-    fn test_translate_ttt() {
-        assert_eq!(translate("TTT", Translation::OneLetter), "F");
-    }
-
-    #[test]
-    fn bad_translation_atg() {
-        assert_eq!(translate("ATG", Translation::ThreeLetter), "Phe");
-    }
+    return rev_comp.chars().rev().collect::<String>();
 }
 
 // print a pretty sequence, 72 bases per line, plus base numbering
@@ -200,59 +129,121 @@ fn print_seq(s: &str, t: SeqType) {
     }
 }
 
-
-
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let n = 25; // number of Fibonacci numbers to compute
-    let f = fibonacci(n); 
-    println!("The first {} Fibonacci numbers:\n{:?}", n, f);
-    fibonacci_plot(f)?;
-
     let filename = "sequence.fasta";
     println!("Reading FASTA record from file '{}'...", filename);
     let reader = fasta::Reader::from_file(filename)?;
 
-    let mut nb_reads = 0;
-    let mut nb_bases = 0;
-    let mut s = String::new();
-
     for record in reader.records() {
         let record = record.expect("Error during FASTA record parsing");
+        println!("Sequence ID: {}", record.id());
+        println!("Sequence description:\n{}", record.desc().unwrap());
+
         if record.id() == "NC_005816.1" {
-            println!("Sequence ID: {}", record.id());
-            println!("Sequence description:\n{}", record.desc().unwrap());
-            // per https://github.com/jperkel/example_notebook/blob/master/My_sample_notebook.ipynb, 
-            // there is a hypothetical protein at residues 3485-3857
-            let myseq = &record.seq()[3485..3857];
-            // myseq is a vector of ASCII codes; convert to a string
-            s = String::from_utf8(myseq.to_vec())?;
+            println!("\nFrom 'https://www.ncbi.nlm.nih.gov/nuccore/NC_005816',");
+            println!("we know that this piece of DNA encodes 9 genes.\n");
+            println!("1) YP_RS22210: IS21-like element IS100 family transposase");
+            println!("2) YP_RS22215: AAA family ATPase");
+            println!("3) YP_RS22220: Rop family plasmid primer RNA-binding protein");
+            println!("4) YP_RS22225: pesticin immunity protein");
+            println!("5) YP_RS22230: pesticin");
+            println!("6) YP_RS22235: hypothetical protein");
+            println!("7) YP_RS22240: omptin family plasminogen activator Pla");
+            println!("8) YP_RS22245: XRE family transcriptional regulator");
+            println!("9) YP_RS22250: type II toxin-antitoxin system RelE/ParE family toxin");
+
+            print!("\nWhich one would you like to view? > ");
+            // flush buffer...
+            io::stdout().flush().unwrap();
+
+            // get input...
+            let mut retval = String::new();
+            io::stdin().read_line(&mut retval).expect("Failed to read from stdin");
+
+            // use trim() to delete the trailing newline ('\n') char
+            let selection = match retval.trim().parse::<usize>() {
+                Ok(i) => i, // if good input, just return the number
+                Err(_) => panic!("Invalid input"),
+            };
+
+            let myseq = match selection {
+                1 => &record.seq()[86..1109],
+                2 => &record.seq()[1108..1888],
+                3 => &record.seq()[2924..3119],
+                4 => &record.seq()[4354..4780],
+                5 => &record.seq()[4814..5888],
+                6 => &record.seq()[6115..6421],
+                7 => &record.seq()[6663..7602],
+                8 => &record.seq()[7788..8088],
+                9 => &record.seq()[8087..8429],
+                _ => panic!("Invalid selection"),
+            };
+            
+            // convert the sequence record into a String
+            let mut s = String::from_utf8(myseq.to_vec())?;
+
+            // genes 5, 8 and 9 are on the 'reverse' strand, so we need their reverse complements
+            if (selection == 5) | (selection == 8) | (selection == 9) {
+                s = reverse_complement(&s)
+            }
+
+            println!("\nDNA sequence:");
+            print_seq(&s, SeqType::DNA);
+            println!("Length: {}\n", s.len());
+        
+            assert!(s.len() % 3 == 0, "Sequence length is not a multiple of 3!");
+            let mut peptide1 = String::new();    
+            let mut peptide3 = String::new();    
+            let n_codons = s.len()/3;
+            for i in 0..n_codons {
+                let codon = &s[i*3..(i*3)+3]; // take a 3-base slice of the sequence
+                peptide1.push_str(&translate(&codon, Translation::OneLetter)); // translate and add to the string
+                peptide3.push_str(&translate(&codon, Translation::ThreeLetter)); // translate and add to the string
+            }
+            println!("One-letter code:");
+            print_seq(&peptide1, SeqType::Protein1);
+            println!("\nThree-letter code:");
+            print_seq(&peptide3, SeqType::Protein3);
+            println!("Length: {}\n", n_codons);
         }
-        nb_reads += 1;
-        nb_bases += record.seq().len();
     }
-    println!("Total number of reads: {}", nb_reads);
-    println!("Total number of bases: {}\n", nb_bases);
-
-    println!("Sequence of my gene [3485..3857]:");
-    print_seq(&s, SeqType::DNA);
-    println!("Length: {}\n", s.len());
-
-    println!("Translation of my gene:\n");
-    assert!(s.len() % 3 == 0, "Sequence length is not a multiple of 3!");
-    let mut peptide1 = String::new();    
-    let mut peptide3 = String::new();    
-    let n_codons = s.len()/3;
-    for i in 0..n_codons {
-        let codon = &s[i*3..(i*3)+3]; // take a 3-base slice of the sequence
-        peptide1.push_str(&translate(&codon, Translation::OneLetter)); // translate and add to the string
-        peptide3.push_str(&translate(&codon, Translation::ThreeLetter)); // translate and add to the string
-    }
-    println!("Single-letter code:");
-    print_seq(&peptide1, SeqType::Protein1);
-    println!("\nTriple-letter code:");
-    print_seq(&peptide3, SeqType::Protein3);
-    println!("Length: {}\n", n_codons);
 
     Ok(()) 
+}
+
+
+// tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_translate_atg() {
+        assert_eq!(translate("ATG", Translation::ThreeLetter), "Met");
+    }
+
+    #[test]
+    fn test_translate_tag() {
+        assert_eq!(translate("TAG", Translation::ThreeLetter), "***");
+    }
+
+    #[test]
+    fn test_translate_ttt() {
+        assert_eq!(translate("TTT", Translation::OneLetter), "F");
+    }
+
+    #[test]
+    fn bad_translation_atg() {
+        assert_eq!(translate("ATG", Translation::ThreeLetter), "Phe");
+    }
+
+    #[test]
+    fn test_reverse_complement1() {
+        assert_eq!(reverse_complement("ATG"), "CAT");
+    }
+
+    #[test]
+    fn test_reverse_complement2() {
+        assert_eq!(reverse_complement("AAAGGGAAATTT"), "AAATTTCCCTTT")
+    }
 }

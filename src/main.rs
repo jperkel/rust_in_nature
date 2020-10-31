@@ -16,9 +16,15 @@ const ERR_BAD_NT: usize = 99;
 // enumeration of genetic sequence types
 enum SeqType {
     DNA,
-    Protein,
+    Protein1, // single-letter amino acid code
+    Protein3, // triple-letter amino acid code
 }
 
+// enumeration of translation types
+enum Translation {
+    OneLetter,
+    ThreeLetter,
+}
 
 // calculate the first x Fibonacci numbers
 fn fibonacci(x: usize) -> Vec<usize> {
@@ -94,7 +100,7 @@ fn lookup(x: char) -> usize {
 }
 
 // translate a codon into its corresponding amino acid
-fn translate(triplet: &str) -> &str {
+fn translate(triplet: &str, t: Translation) -> String {
     let three_letter_code: HashMap<char, &str> = [
     ('A', "Ala"), 
     ('B', "???"), 
@@ -138,8 +144,10 @@ fn translate(triplet: &str) -> &str {
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
     // translate the codon into single-letter code
     let c = GENETIC_CODE.chars().nth(index).unwrap();
-    // return the three-letter equivalent
-    return three_letter_code.get(&c).unwrap(); 
+    match t {
+        Translation::OneLetter => return c.to_string(),
+        Translation::ThreeLetter => return three_letter_code.get(&c).unwrap().to_string(),
+    }
 }
 
 
@@ -150,31 +158,36 @@ mod tests {
 
     #[test]
     fn test_translate_atg() {
-        assert_eq!(translate("ATG"), "Met");
+        assert_eq!(translate("ATG", Translation::ThreeLetter), "Met");
     }
 
     #[test]
     fn test_translate_tag() {
-        assert_eq!(translate("TAG"), "***");
+        assert_eq!(translate("TAG", Translation::ThreeLetter), "***");
     }
 
     #[test]
     fn test_translate_ttt() {
-        assert_eq!(translate("TTT"), "Phe");
+        assert_eq!(translate("TTT", Translation::OneLetter), "F");
+    }
+
+    #[test]
+    fn bad_translation_atg() {
+        assert_eq!(translate("ATG", Translation::ThreeLetter), "Phe");
     }
 }
 
 // print a pretty sequence, 72 bases per line, plus base numbering
 // s: sequence
-// t: sequence type ("dna" or "protein")
+// t: sequence type (DNA, Protein1 or Protein3)
 fn print_seq(s: &str, t: SeqType) {
     let linelen = 72;
     let divisor;
     match t {
         // if we're printing a protein, count amino acids, not bases, 
         // so divide by 3
-        SeqType::DNA => divisor = 1,
-        SeqType::Protein => divisor = 3,
+        SeqType::DNA | SeqType::Protein1 => divisor = 1,
+        SeqType::Protein3 => divisor = 3,
     }
     for i in 0..(s.len()/linelen) {
         let myline = &s[i*linelen..(i*linelen)+linelen];
@@ -225,15 +238,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     print_seq(&s, SeqType::DNA);
     println!("Length: {}\n", s.len());
 
-    println!("Translation of my gene:");
+    println!("Translation of my gene:\n");
     assert!(s.len() % 3 == 0, "Sequence length is not a multiple of 3!");
-    let mut peptide = String::new();    
+    let mut peptide1 = String::new();    
+    let mut peptide3 = String::new();    
     let n_codons = s.len()/3;
     for i in 0..n_codons {
         let codon = &s[i*3..(i*3)+3]; // take a 3-base slice of the sequence
-        peptide.push_str(translate(&codon)); // translate and add to the string
+        peptide1.push_str(&translate(&codon, Translation::OneLetter)); // translate and add to the string
+        peptide3.push_str(&translate(&codon, Translation::ThreeLetter)); // translate and add to the string
     }
-    print_seq(&peptide, SeqType::Protein);
+    println!("Single-letter code:");
+    print_seq(&peptide1, SeqType::Protein1);
+    println!("\nTriple-letter code:");
+    print_seq(&peptide3, SeqType::Protein3);
     println!("Length: {}\n", n_codons);
 
     Ok(()) 

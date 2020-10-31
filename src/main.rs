@@ -3,6 +3,7 @@ use bio::io::fasta;
 use std::collections::HashMap;
 use std::io;
 use std::io::Write;
+use std::env;
 
 // Translation table 11 from https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi. 
 // Indexing into this array is as follows: 
@@ -132,13 +133,23 @@ fn print_seq(s: &str, t: SeqType) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let filename = "sequence.fasta";
-    println!("Reading FASTA record from file '{}'...", filename);
+    let mut filename = "sequence.fasta";
+
+    // the user can provide another FASTA file on the command line
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        filename = &args[1];
+    }
+    if !std::path::Path::new(filename).exists() {
+        panic!("File {} does not exist.", filename);
+    }
+
+    println!("Reading FASTA records from file '{}'...", filename);
     let reader = fasta::Reader::from_file(filename)?;
 
     for record in reader.records() {
         let record = record.expect("Error during FASTA record parsing");
-        println!("Sequence ID: {}", record.id());
+        println!("\nSequence ID: {}", record.id());
         println!("Sequence description:\n{}", record.desc().unwrap());
 
         if record.id() == "NC_005816.1" {

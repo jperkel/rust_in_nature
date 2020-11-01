@@ -117,13 +117,14 @@ fn reverse_complement(s: &str) -> String {
 // t: sequence type (DNA, Protein1 or Protein3)
 fn print_seq(s: &str, t: SeqType) {
     let linelen = 72;
-    let divisor;
-    match t {
-        // if we're printing a protein, count amino acids, not bases, 
+
+    let divisor = match t {
+        // if we're printing a Protein3, count amino acids, not bases, 
         // so divide by 3
-        SeqType::DNA | SeqType::Protein1 => divisor = 1,
-        SeqType::Protein3 => divisor = 3,
-    }
+        SeqType::DNA | SeqType::Protein1 =>  1,
+        SeqType::Protein3 => 3,
+    };
+
     for i in 0..(s.len()/linelen) {
         let myline = &s[i*linelen..(i*linelen)+linelen];
         println!("{number:>0width$} {}", myline, number=(((i*linelen)/divisor))+1, width=3);
